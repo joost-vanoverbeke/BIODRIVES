@@ -1,0 +1,384 @@
+---
+title: "pilot analysis hyper for BIODRIVES"
+output:
+  word_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, error=FALSE, warning=FALSE, message=FALSE, cache=FALSE)
+
+```
+
+
+```{r}
+
+library(tidyverse)
+library(readxl)
+library(vegan)
+
+```
+
+
+```{r}
+
+adapt_names <- 
+  function(names) {
+    names <- 
+      sapply(names,
+             function(x)
+               str_replace(x, "_", " "))
+    names <- case_when(
+      names == "Crangon" ~ "Crangon crangon",
+      names == "Mesopodopsis" ~ "Mesopodopsis slabberi",
+      names == "Neomysis int" ~ "Neomysis integer",
+      names == "Osmerus" ~ "Osmerus eperlanus",
+      names == "Palaemon" ~ "Palaemon longirostris",
+      names == "Platichthys" ~ "Platichthys flesus",
+      names == "Pomatoschistus" ~ "Pomatoschistus microps",
+      TRUE ~ names)
+    names <- 
+      sapply(names, 
+             function(x) 
+               if(x %>% str_split(" ", simplify = TRUE) %>% c() %>% length() > 1)
+                 paste0((x %>% 
+                           str_split(" ", simplify = TRUE) %>% 
+                           c())[1] %>% 
+                          str_sub(1,1), 
+                        ". ", 
+                        paste((x %>% 
+                                 str_split(" ", simplify = TRUE) %>% 
+                                 c())[-1]))
+             else(x))
+    return(names)
+  }
+
+```
+
+
+```{r matrices aantallen}
+
+# spe_A <- read_excel("../00_data/ENV_A.xlsx")
+# env_A <- read_excel("../00_data/ENV_A.xlsx")
+
+spe_A <- read_excel("C:/Users/joost_vanoverbeke/Documents/BIODRIVES/pilot_hyper/00_data/SPE_A.xlsx")
+env_A <- read_excel("C:/Users/joost_vanoverbeke/Documents/BIODRIVES/pilot_hyper/00_data/ENV_A.xlsx")
+
+sample_variables <- 
+  c("jaar2", "seizoen", "maand", "salzone", "locatie")
+
+abiotic_variables <- 
+  paste0("z.", 
+         c("temp", "logSalpsu", "O2_mg", "logOM_mg", "logOM", "logMeanQ5M", "logMeanQ_CO", "days_spring2", "tide_amplitude"))
+
+env_A <- 
+  env_A %>% 
+  select(SampleID, all_of(sample_variables), all_of(abiotic_variables)) %>% 
+  drop_na()
+
+spe_A <- 
+  spe_A %>% 
+  filter(SampleID %in% env_A$SampleID) %>% 
+  arrange(SampleID) %>%
+  column_to_rownames("SampleID")
+
+names(spe_A) <- 
+  adapt_names(names(spe_A))
+
+env_A <- 
+  env_A %>% 
+  mutate(salzone = factor(salzone, levels = c("mesohaline", "oligohaline", "freshwater")),
+         seizoen = factor(seizoen, levels = c("winter", "spring", "summer", "autumn")))
+
+env_A <- 
+  env_A %>% 
+  arrange(SampleID) %>%
+  column_to_rownames("SampleID")
+
+```
+
+
+```{r matrices biomassa}
+
+# spe_B <- read_excel("../00_data/SPE_B.xlsx")
+# env_B <- read_excel("../00_data/ENV_B.xlsx")
+
+spe_B <- read_excel("C:/Users/joost_vanoverbeke/Documents/BIODRIVES/pilot_hyper/00_data/SPE_B.xlsx")
+env_B <- read_excel("C:/Users/joost_vanoverbeke/Documents/BIODRIVES/pilot_hyper/00_data/ENV_B.xlsx")
+
+sample_variables <- 
+  c("jaar2", "seizoen", "maand", "salzone", "locatie")
+
+abiotic_variables <- 
+  paste0("z.", 
+         c("temp", "logSalpsu", "O2_mg", "logOM_mg", "logOM", "logMeanQ5M", "logMeanQ_CO", "days_spring2", "tide_amplitude"))
+
+env_B <- 
+  env_B %>% 
+  select(SampleID, all_of(sample_variables), all_of(abiotic_variables)) %>% 
+  drop_na()
+
+spe_B <- 
+  spe_B %>% 
+  filter(SampleID %in% env_B$SampleID) %>% 
+  arrange(SampleID) %>% 
+  column_to_rownames("SampleID")
+
+names(spe_B) <- 
+  adapt_names(names(spe_B))
+
+env_B <- 
+  env_B %>% 
+  mutate(salzone = factor(salzone, levels = c("mesohaline", "oligohaline", "freshwater")),
+         seizoen = factor(seizoen, levels = c("winter", "spring", "summer", "autumn")))
+
+env_B <- 
+  env_B %>% 
+  arrange(SampleID) %>% 
+  column_to_rownames("SampleID")
+
+```
+
+
+```{r alpha diversity aantallen}
+
+div_A <- 
+  env_A %>% 
+  bind_cols(nbr_spec = specnumber(spe_A), 
+            shannon = diversity(spe_A), 
+            exp_shannon = exp(diversity(spe_A)),
+            simpson = diversity(spe_A, index = "simpson"), 
+            inv_simpson = diversity(spe_A, index = "invsimpson")) %>% 
+  filter(jaar2 > 2013) %>% 
+  rownames_to_column() %>% 
+  group_by(jaar2, maand, salzone, locatie) %>% 
+  filter(rowname == max(rowname)) %>% 
+  ungroup()
+
+div_A_summer <-
+  div_A %>% 
+  filter(maand %in% 6:9)
+
+env_A_summer <-
+  env_A %>% 
+  rownames_to_column() %>% 
+  filter(maand %in% div_A_summer$maand,
+         jaar2%in% div_A_summer$jaar2) %>%
+  # filter(maand %in% 9) %>%
+  # filter(maand %in% 9,
+  #        jaar2 %in% 2016) %>%
+  arrange(rowname) %>%
+  column_to_rownames("rowname")
+
+spe_A_summer <- 
+  spe_A %>% 
+  rownames_to_column() %>% 
+  filter(rowname %in% rownames(env_A_summer)) %>% 
+  arrange(rowname) %>%
+  column_to_rownames("rowname")
+
+
+maand_jaar <- 
+  env_A_summer %>% 
+  distinct(maand, jaar2)
+
+for (i in 1:nrow(maand_jaar)) {
+  maand_sel <- maand_jaar$maand[i]
+  jaar_sel <- maand_jaar$jaar2[i]
+  env_A_sel <-
+    env_A %>% 
+    rownames_to_column() %>% 
+    filter(maand == maand_sel,
+           jaar2 == jaar_sel) %>%
+    arrange(rowname) %>%
+    column_to_rownames("rowname")
+  spe_A_sel <- 
+    spe_A %>% 
+    rownames_to_column() %>% 
+    filter(rowname %in% rownames(env_A_sel)) %>% 
+    arrange(rowname) %>%
+    column_to_rownames("rowname")
+  # adipart_A <- adipart(spe_A_summer ~ locatie + salzone + jaar2, env_A_summer, index = "simpson")
+  multipart_A <- multipart(spe_A_sel ~ locatie + salzone + jaar2, env_A_sel, index = "renyi", scales = 1)
+  # div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, names(multipart_A$statistic)] <- t(multipart_A$statistic)
+  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "alpha.1"] <- multipart_A$statistic["alpha.1"]
+  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "alpha.2"] <- multipart_A$statistic["alpha.2"]
+  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "gamma"] <- multipart_A$statistic["gamma"]
+  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "beta.1"] <- multipart_A$statistic["beta.1"]
+  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "beta.2"] <- multipart_A$statistic["beta.2"]
+}
+
+
+
+
+
+div_A_summer %>% 
+  ggplot(aes(nbr_spec)) +
+  geom_histogram(binwidth = 1)
+
+div_A_summer %>% 
+  ggplot(aes(shannon)) +
+  geom_histogram()
+
+div_A_summer %>% 
+  ggplot(aes(simpson)) +
+  geom_histogram()
+
+div_A_summer %>% 
+  ggplot(aes(exp_shannon)) +
+  geom_histogram()
+
+div_A_summer %>% 
+  ggplot(aes(inv_simpson)) +
+  geom_histogram()
+
+
+div_A_summer_long <-
+  div_A_summer %>% 
+  pivot_longer(z.temp:z.tide_amplitude)
+
+div_A_summer_long %>% 
+  ggplot(aes(value, nbr_spec)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(name~salzone, scales = "free")
+
+div_A_summer_long %>% 
+  ggplot(aes(value, shannon)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(name~salzone, scales = "free")
+
+div_A_summer_long %>% 
+  ggplot(aes(value, simpson)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(name~salzone, scales = "free")
+
+div_A_summer_long %>% 
+  ggplot(aes(value, exp_shannon)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(name~salzone, scales = "free")
+
+div_A_summer_long %>% 
+  ggplot(aes(value, inv_simpson)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(name~salzone, scales = "free")
+
+
+
+
+
+div_A_year <-
+  div_A_summer %>% 
+  select(-seizoen, -maand) %>% 
+  group_by(jaar2, salzone, locatie) %>% 
+  summarise_all(list(mean = ~mean(., na.rm = TRUE), var = ~var(., na.rm = TRUE))) %>% 
+  ungroup()
+
+div_A_year_long <-
+  div_A_year %>% 
+  pivot_longer(c(z.temp_mean:z.tide_amplitude_mean, z.temp_var:z.tide_amplitude_var))
+
+div_A_year_long %>% 
+  filter(str_detect(name, "_mean")) %>% 
+  ggplot(aes(value, nbr_spec_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(name~salzone, scales = "free")
+
+div_A_year_long %>% 
+  filter(str_detect(name, "_var")) %>% 
+  ggplot(aes(value, nbr_spec_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(name~salzone, scales = "free")
+
+div_A_year_long %>% 
+  filter(str_detect(name, "_mean")) %>% 
+  ggplot(aes(value, nbr_spec_var)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(name~salzone, scales = "free")
+
+div_A_year_long %>% 
+  filter(str_detect(name, "_var")) %>% 
+  ggplot(aes(value, nbr_spec_var)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(name~salzone, scales = "free")
+
+div_A_year_long %>% 
+  filter(str_detect(name, "_mean")) %>% 
+  ggplot(aes(value, shannon_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(name~salzone, scales = "free")
+
+div_A_year_long %>% 
+  filter(str_detect(name, "_var")) %>% 
+  ggplot(aes(value, shannon_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  # scale_x_sqrt() +
+  facet_grid(name~salzone, scales = "free")
+
+div_A_year_long %>% 
+  filter(str_detect(name, "_mean")) %>% 
+  ggplot(aes(value, shannon_var)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(name~salzone, scales = "free")
+
+div_A_year_long %>% 
+  filter(str_detect(name, "_var")) %>% 
+  ggplot(aes(value, shannon_var)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(name~salzone, scales = "free")
+
+```
+
+
+```{r alpha diversity biomassa}
+
+div_B <- 
+  env_B %>% 
+  bind_cols(nbr_spec = specnumber(spe_B), shannon = diversity(spe_B))
+
+div_B_summer <-
+  div_B %>% 
+  filter(maand %in% 6:9)
+
+div_B_summer %>% 
+  ggplot(aes(nbr_spec)) +
+  geom_histogram()
+
+div_B_summer %>% 
+  ggplot(aes(shannon)) +
+  geom_histogram()
+
+
+div_B_summer_long <-
+  div_B_summer %>% 
+  pivot_longer(z.temp:z.tide_amplitude)
+
+div_B_summer_long %>% 
+  ggplot(aes(value, nbr_spec)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(name~salzone, scales = "free")
+
+div_B_summer_long %>% 
+  ggplot(aes(value, shannon)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(name~salzone, scales = "free")
+
+```
+
