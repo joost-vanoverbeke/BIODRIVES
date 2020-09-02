@@ -61,11 +61,11 @@ adapt_names <-
 
 ```{r matrices aantallen}
 
-# spe_A <- read_excel("../00_data/ENV_A.xlsx")
-# env_A <- read_excel("../00_data/ENV_A.xlsx")
+spe_A <- read_excel("pilot_hyper/00_data/SPE_A.xlsx")
+env_A <- read_excel("pilot_hyper/00_data/ENV_A.xlsx")
 
-spe_A <- read_excel("C:/Users/joost_vanoverbeke/Documents/BIODRIVES/pilot_hyper/00_data/SPE_A.xlsx")
-env_A <- read_excel("C:/Users/joost_vanoverbeke/Documents/BIODRIVES/pilot_hyper/00_data/ENV_A.xlsx")
+# spe_A <- read_excel("C:/Users/joost_vanoverbeke/Documents/BIODRIVES/pilot_hyper/00_data/SPE_A.xlsx")
+# env_A <- read_excel("C:/Users/joost_vanoverbeke/Documents/BIODRIVES/pilot_hyper/00_data/ENV_A.xlsx")
 
 sample_variables <- 
   c("jaar2", "seizoen", "maand", "salzone", "locatie")
@@ -103,11 +103,11 @@ env_A <-
 
 ```{r matrices biomassa}
 
-# spe_B <- read_excel("../00_data/SPE_B.xlsx")
-# env_B <- read_excel("../00_data/ENV_B.xlsx")
+spe_B <- read_excel("pilot_hyper/00_data/SPE_B.xlsx")
+env_B <- read_excel("pilot_hyper/00_data/ENV_B.xlsx")
 
-spe_B <- read_excel("C:/Users/joost_vanoverbeke/Documents/BIODRIVES/pilot_hyper/00_data/SPE_B.xlsx")
-env_B <- read_excel("C:/Users/joost_vanoverbeke/Documents/BIODRIVES/pilot_hyper/00_data/ENV_B.xlsx")
+# spe_B <- read_excel("C:/Users/joost_vanoverbeke/Documents/BIODRIVES/pilot_hyper/00_data/SPE_B.xlsx")
+# env_B <- read_excel("C:/Users/joost_vanoverbeke/Documents/BIODRIVES/pilot_hyper/00_data/ENV_B.xlsx")
 
 sample_variables <- 
   c("jaar2", "seizoen", "maand", "salzone", "locatie")
@@ -143,7 +143,7 @@ env_B <-
 ```
 
 
-```{r alpha diversity aantallen}
+```{r diversity aantallen}
 
 div_A <- 
   env_A %>% 
@@ -202,15 +202,109 @@ for (i in 1:nrow(maand_jaar)) {
     arrange(rowname) %>%
     column_to_rownames("rowname")
   # adipart_A <- adipart(spe_A_summer ~ locatie + salzone + jaar2, env_A_summer, index = "simpson")
-  multipart_A <- multipart(spe_A_sel ~ locatie + salzone + jaar2, env_A_sel, index = "renyi", scales = 1)
-  # div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, names(multipart_A$statistic)] <- t(multipart_A$statistic)
-  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "alpha.1"] <- multipart_A$statistic["alpha.1"]
-  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "alpha.2"] <- multipart_A$statistic["alpha.2"]
-  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "gamma"] <- multipart_A$statistic["gamma"]
-  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "beta.1"] <- multipart_A$statistic["beta.1"]
-  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "beta.2"] <- multipart_A$statistic["beta.2"]
+  multipart_A <- multipart(spe_A_sel ~ locatie + salzone + jaar2, env_A_sel, index = "renyi", scales = 0)
+  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "alpha.1_0"] <- multipart_A$statistic["alpha.1"]
+  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "alpha.2_0"] <- multipart_A$statistic["alpha.2"]
+  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "gamma_0"] <- multipart_A$statistic["gamma"]
+  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "beta.1_0"] <- multipart_A$statistic["beta.1"]
+  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "beta.2_0"] <- multipart_A$statistic["beta.2"]
+  multipart_A <- multipart(spe_A_sel ~ locatie + salzone + jaar2, env_A_sel, index = "renyi", scales = 2)
+  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "alpha.1_2"] <- multipart_A$statistic["alpha.1"]
+  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "alpha.2_2"] <- multipart_A$statistic["alpha.2"]
+  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "gamma_2"] <- multipart_A$statistic["gamma"]
+  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "beta.1_2"] <- multipart_A$statistic["beta.1"]
+  div_A_summer[div_A_summer$maand == maand_sel & div_A_summer$jaar2 == jaar_sel, "beta.2_2"] <- multipart_A$statistic["beta.2"]
 }
 
+
+div_A_sept_loc <-
+  div_A_summer %>% 
+  group_by(jaar2, salzone, locatie) %>% 
+  summarise_at(vars(z.temp,z.logSalpsu,z.logMeanQ5M,z.logMeanQ_CO), 
+               list(mean = ~mean(., na.rm = TRUE), 
+                    var = ~var(., na.rm = TRUE), 
+                    min = ~min(., na.rm = TRUE), 
+                    max = ~max(., na.rm = TRUE))) %>% 
+  ungroup() %>% 
+  left_join(div_A_summer %>% 
+              filter(., maand == 9) %>% 
+              select(jaar2, salzone, locatie,nbr_spec:beta.2_2))
+
+div_A_sept_jaar <-
+  div_A_sept_loc %>% 
+  group_by(jaar2) %>% 
+  summarise_at(vars(z.temp_mean:z.logMeanQ_CO_max, alpha.2_0, gamma_0, beta.2_0, alpha.2_2, gamma_2, beta.2_2), 
+               mean, na.rm = TRUE) %>% 
+  ungroup()
+
+
+div_A_sept_jaar_long <-
+  div_A_sept_jaar %>% 
+  pivot_longer(cols = z.temp_mean:z.logMeanQ_CO_max,
+               names_to = "env_var",
+               values_to = "env_val") %>% 
+  pivot_longer(cols = alpha.2_0:beta.2_0,
+               names_to = "div_0_var",
+               values_to = "div_0_val") %>% 
+  pivot_longer(cols = alpha.2_2:beta.2_2,
+               names_to = "div_2_var",
+               values_to = "div_2_val")
+
+div_A_sept_jaar_long %>% 
+  filter(str_detect(env_var, "temp")) %>% 
+  ggplot(aes(env_val, div_0_val, color = div_0_var)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~env_var, scales = "free")
+
+div_A_sept_jaar_long %>% 
+  filter(str_detect(env_var, "logSalpsu")) %>% 
+  ggplot(aes(env_val, div_0_val, color = div_0_var)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~env_var, scales = "free")
+
+div_A_sept_jaar_long %>% 
+  filter(str_detect(env_var, "logMeanQ5M")) %>% 
+  ggplot(aes(env_val, div_0_val, color = div_0_var)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~env_var, scales = "free")
+
+div_A_sept_jaar_long %>% 
+  filter(str_detect(env_var, "logMeanQ_CO")) %>% 
+  ggplot(aes(env_val, div_0_val, color = div_0_var)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~env_var, scales = "free")
+
+div_A_sept_jaar_long %>% 
+  filter(str_detect(env_var, "temp")) %>% 
+  ggplot(aes(env_val, div_2_val, color = div_2_var)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~env_var, scales = "free")
+
+div_A_sept_jaar_long %>% 
+  filter(str_detect(env_var, "logSalpsu")) %>% 
+  ggplot(aes(env_val, div_2_val, color = div_2_var)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~env_var, scales = "free")
+
+div_A_sept_jaar_long %>% 
+  filter(str_detect(env_var, "logMeanQ5M")) %>% 
+  ggplot(aes(env_val, div_2_val, color = div_2_var)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~env_var, scales = "free")
+
+div_A_sept_jaar_long %>% 
+  filter(str_detect(env_var, "logMeanQ_CO")) %>% 
+  ggplot(aes(env_val, div_2_val, color = div_2_var)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~env_var, scales = "free")
 
 
 
@@ -229,156 +323,176 @@ div_A_summer %>%
 
 div_A_summer %>% 
   ggplot(aes(exp_shannon)) +
-  geom_histogram()
+  geom_histogram(binwidth = 1)
 
 div_A_summer %>% 
   ggplot(aes(inv_simpson)) +
-  geom_histogram()
+  geom_histogram(binwidth = 1)
 
 
 div_A_summer_long <-
   div_A_summer %>% 
-  pivot_longer(z.temp:z.tide_amplitude)
+  pivot_longer(z.temp:z.tide_amplitude) %>% 
+  filter(name %in% c("z.temp","z.logSalpsu","z.logMeanQ5M","z.logMeanQ_CO"))
 
 div_A_summer_long %>% 
   ggplot(aes(value, nbr_spec)) +
   geom_point() +
   geom_smooth(method = "lm") +
-  facet_grid(name~salzone, scales = "free")
-
-div_A_summer_long %>% 
-  ggplot(aes(value, shannon)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  facet_grid(name~salzone, scales = "free")
-
-div_A_summer_long %>% 
-  ggplot(aes(value, simpson)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  facet_grid(name~salzone, scales = "free")
-
-div_A_summer_long %>% 
-  ggplot(aes(value, exp_shannon)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  facet_grid(name~salzone, scales = "free")
+  facet_grid(salzone~name, scales = "free_x")
 
 div_A_summer_long %>% 
   ggplot(aes(value, inv_simpson)) +
   geom_point() +
   geom_smooth(method = "lm") +
-  facet_grid(name~salzone, scales = "free")
-
-
-
-
-
-div_A_year <-
-  div_A_summer %>% 
-  select(-seizoen, -maand) %>% 
-  group_by(jaar2, salzone, locatie) %>% 
-  summarise_all(list(mean = ~mean(., na.rm = TRUE), var = ~var(., na.rm = TRUE))) %>% 
-  ungroup()
-
-div_A_year_long <-
-  div_A_year %>% 
-  pivot_longer(c(z.temp_mean:z.tide_amplitude_mean, z.temp_var:z.tide_amplitude_var))
-
-div_A_year_long %>% 
-  filter(str_detect(name, "_mean")) %>% 
-  ggplot(aes(value, nbr_spec_mean)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  facet_grid(name~salzone, scales = "free")
-
-div_A_year_long %>% 
-  filter(str_detect(name, "_var")) %>% 
-  ggplot(aes(value, nbr_spec_mean)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  facet_grid(name~salzone, scales = "free")
-
-div_A_year_long %>% 
-  filter(str_detect(name, "_mean")) %>% 
-  ggplot(aes(value, nbr_spec_var)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  facet_grid(name~salzone, scales = "free")
-
-div_A_year_long %>% 
-  filter(str_detect(name, "_var")) %>% 
-  ggplot(aes(value, nbr_spec_var)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  facet_grid(name~salzone, scales = "free")
-
-div_A_year_long %>% 
-  filter(str_detect(name, "_mean")) %>% 
-  ggplot(aes(value, shannon_mean)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  facet_grid(name~salzone, scales = "free")
-
-div_A_year_long %>% 
-  filter(str_detect(name, "_var")) %>% 
-  ggplot(aes(value, shannon_mean)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  # scale_x_sqrt() +
-  facet_grid(name~salzone, scales = "free")
-
-div_A_year_long %>% 
-  filter(str_detect(name, "_mean")) %>% 
-  ggplot(aes(value, shannon_var)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  facet_grid(name~salzone, scales = "free")
-
-div_A_year_long %>% 
-  filter(str_detect(name, "_var")) %>% 
-  ggplot(aes(value, shannon_var)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  facet_grid(name~salzone, scales = "free")
+  facet_grid(salzone~name, scales = "free_x")
 
 ```
 
 
-```{r alpha diversity biomassa}
+```{r diversity biomassa}
 
 div_B <- 
   env_B %>% 
-  bind_cols(nbr_spec = specnumber(spe_B), shannon = diversity(spe_B))
+  bind_cols(nbr_spec = specnumber(spe_B), 
+            shannon = diversity(spe_B), 
+            exp_shannon = exp(diversity(spe_B)),
+            simpson = diversity(spe_B, index = "simpson"), 
+            inv_simpson = diversity(spe_B, index = "invsimpson")) %>% 
+  filter(jaar2 > 2013) %>% 
+  rownames_to_column() %>% 
+  group_by(jaar2, maand, salzone, locatie) %>% 
+  filter(rowname == max(rowname)) %>% 
+  ungroup()
 
 div_B_summer <-
   div_B %>% 
   filter(maand %in% 6:9)
 
-div_B_summer %>% 
-  ggplot(aes(nbr_spec)) +
-  geom_histogram()
+env_B_summer <-
+  env_B %>% 
+  rownames_to_column() %>% 
+  filter(maand %in% div_B_summer$maand,
+         jaar2%in% div_B_summer$jaar2) %>%
+  # filter(maand %in% 9) %>%
+  # filter(maand %in% 9,
+  #        jaar2 %in% 2016) %>%
+  arrange(rowname) %>%
+  column_to_rownames("rowname")
+
+spe_B_summer <- 
+  spe_B %>% 
+  rownames_to_column() %>% 
+  filter(rowname %in% rownames(env_B_summer)) %>% 
+  arrange(rowname) %>%
+  column_to_rownames("rowname")
+
+
+maand_jaar <- 
+  env_B_summer %>% 
+  distinct(maand, jaar2)
+
+for (i in 1:nrow(maand_jaar)) {
+  maand_sel <- maand_jaar$maand[i]
+  jaar_sel <- maand_jaar$jaar2[i]
+  env_B_sel <-
+    env_B %>% 
+    rownames_to_column() %>% 
+    filter(maand == maand_sel,
+           jaar2 == jaar_sel) %>%
+    arrange(rowname) %>%
+    column_to_rownames("rowname")
+  spe_B_sel <- 
+    spe_B %>% 
+    rownames_to_column() %>% 
+    filter(rowname %in% rownames(env_B_sel)) %>% 
+    arrange(rowname) %>%
+    column_to_rownames("rowname")
+  # adipart_B <- adipart(spe_B_summer ~ locatie + salzone + jaar2, env_B_summer, index = "simpson")
+  multipart_B <- multipart(spe_B_sel ~ locatie + salzone + jaar2, env_B_sel, index = "renyi", scales = 2, method = "swsh_samp")
+  div_B_summer[div_B_summer$maand == maand_sel & div_B_summer$jaar2 == jaar_sel, "alpha.1"] <- multipart_B$statistic["alpha.1"]
+  div_B_summer[div_B_summer$maand == maand_sel & div_B_summer$jaar2 == jaar_sel, "alpha.2"] <- multipart_B$statistic["alpha.2"]
+  div_B_summer[div_B_summer$maand == maand_sel & div_B_summer$jaar2 == jaar_sel, "gamma"] <- multipart_B$statistic["gamma"]
+  div_B_summer[div_B_summer$maand == maand_sel & div_B_summer$jaar2 == jaar_sel, "beta.1"] <- multipart_B$statistic["beta.1"]
+  div_B_summer[div_B_summer$maand == maand_sel & div_B_summer$jaar2 == jaar_sel, "beta.2"] <- multipart_B$statistic["beta.2"]
+}
+
+
+div_B_sept_loc <-
+  div_B_summer %>% 
+  group_by(jaar2, salzone, locatie) %>% 
+  summarise_at(vars(z.temp,z.logSalpsu,z.logMeanQ5M,z.logMeanQ_CO), 
+               list(mean = ~mean(., na.rm = TRUE), 
+                    var = ~var(., na.rm = TRUE), 
+                    min = ~min(., na.rm = TRUE), 
+                    max = ~max(., na.rm = TRUE))) %>% 
+  ungroup() %>% 
+  left_join(div_B_summer %>% 
+              filter(., maand == 9) %>% 
+              select(jaar2, salzone, locatie,nbr_spec:beta.2))
+
+div_B_sept_jaar <-
+  div_B_sept_loc %>% 
+  group_by(jaar2) %>% 
+  summarise_at(vars(z.temp_mean:z.logMeanQ_CO_max, alpha.2, gamma, beta.2), 
+               mean, na.rm = TRUE) %>% 
+  ungroup()
+
+
+div_B_sept_jaar_long <-
+  div_B_sept_jaar %>% 
+  pivot_longer(cols = z.temp_mean:z.logMeanQ_CO_max,
+               names_to = "env_var",
+               values_to = "env_val") %>% 
+  pivot_longer(cols = alpha.2:beta.2,
+               names_to = "div_var",
+               values_to = "div_val")
+
+div_B_sept_jaar_long %>% 
+  filter(str_detect(env_var, "temp")) %>% 
+  ggplot(aes(env_val, div_val, color = div_var)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~env_var, scales = "free")
+
+div_B_sept_jaar_long %>% 
+  filter(str_detect(env_var, "logSalpsu")) %>% 
+  ggplot(aes(env_val, div_val, color = div_var)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~env_var, scales = "free")
+
+div_B_sept_jaar_long %>% 
+  filter(str_detect(env_var, "logMeanQ5M")) %>% 
+  ggplot(aes(env_val, div_val, color = div_var)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~env_var, scales = "free")
+
+div_B_sept_jaar_long %>% 
+  filter(str_detect(env_var, "logMeanQ_CO")) %>% 
+  ggplot(aes(env_val, div_val, color = div_var)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~env_var, scales = "free")
+
+
 
 div_B_summer %>% 
-  ggplot(aes(shannon)) +
-  geom_histogram()
+  ggplot(aes(inv_simpson)) +
+  geom_histogram(binwidth = 1)
 
 
 div_B_summer_long <-
   div_B_summer %>% 
-  pivot_longer(z.temp:z.tide_amplitude)
+  pivot_longer(z.temp:z.tide_amplitude) %>% 
+  filter(name %in% c("z.temp","z.logSalpsu","z.logMeanQ5M","z.logMeanQ_CO"))
 
 div_B_summer_long %>% 
-  ggplot(aes(value, nbr_spec)) +
+  ggplot(aes(value, inv_simpson)) +
   geom_point() +
   geom_smooth(method = "lm") +
-  facet_grid(name~salzone, scales = "free")
-
-div_B_summer_long %>% 
-  ggplot(aes(value, shannon)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  facet_grid(name~salzone, scales = "free")
+  facet_grid(salzone~name, scales = "free_x")
 
 ```
 
