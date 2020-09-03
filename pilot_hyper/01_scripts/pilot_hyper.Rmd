@@ -358,7 +358,8 @@ div_B <-
             shannon = diversity(spe_B), 
             exp_shannon = exp(diversity(spe_B)),
             simpson = diversity(spe_B, index = "simpson"), 
-            inv_simpson = diversity(spe_B, index = "invsimpson")) %>% 
+            inv_simpson = diversity(spe_B, index = "invsimpson"),
+            productivity = rowSums(spe_B, na.rm = TRUE)) %>% 
   filter(jaar2 > 2013) %>% 
   rownames_to_column() %>% 
   group_by(jaar2, maand, salzone, locatie) %>% 
@@ -495,4 +496,83 @@ div_B_summer_long %>%
   facet_grid(salzone~name, scales = "free_x")
 
 ```
+
+
+```{r productiviteit}
+
+div_summer <-
+  div_A_summer %>% 
+  select(jaar2, maand, salzone, locatie,
+         z.temp, z.logSalpsu, z.logMeanQ5M, z.logMeanQ_CO,
+         nbr_spec, inv_simpson_count = inv_simpson, alpha_count = alpha.2_0, gamma_count = gamma_0, beta_count = beta.2_0) %>% 
+  left_join(div_B_summer %>% 
+              select(jaar2, maand, salzone, locatie,
+                     inv_simpson_biom = inv_simpson, alpha_div = alpha.2, gamma_div = gamma, beta_div = beta.2,
+                     productivity))
+
+div_summer_jaar <-
+  div_summer %>% 
+  group_by(jaar2, maand) %>% 
+  summarise(alpha_count = mean(alpha_count, na.rm = TRUE),
+            gamma_count = mean(gamma_count, na.rm = TRUE),
+            beta_count = mean(beta_count, na.rm = TRUE),
+            alpha_div = mean(alpha_div, na.rm = TRUE),
+            gamma_div = mean(gamma_div, na.rm = TRUE),
+            beta_div = mean(beta_div, na.rm = TRUE),
+            productivity_mean = mean(productivity, na.rm = TRUE),
+            productivity_tot = sum(productivity, na.rm = TRUE)) %>% 
+  ungroup()
+
+div_summer_jaar_long <-
+  div_summer_jaar %>% 
+  pivot_longer(cols = contains("_count"),
+               names_to = "count_var",
+               values_to = "count_val") %>% 
+  pivot_longer(cols = contains("_div"),
+               names_to = "div_var",
+               values_to = "div_val") %>% 
+  pivot_longer(cols = contains("productivity_"),
+               names_to = "productivity_var",
+               values_to = "productivity_val")
+
+div_summer %>% 
+  ggplot(aes(nbr_spec, productivity)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  scale_y_log10() +
+  facet_wrap(~salzone, scales = "free_x")
+
+div_summer %>% 
+  ggplot(aes(inv_simpson_count, productivity)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  scale_y_log10() +
+  facet_wrap(~salzone, scales = "free_x")
+
+div_summer %>% 
+  ggplot(aes(inv_simpson_biom, productivity)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  scale_y_log10() +
+  facet_wrap(~salzone, scales = "free_x")
+
+
+
+div_summer_jaar_long %>% 
+  ggplot(aes(count_val, productivity_val)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_y_log10() +
+  facet_grid(productivity_var~count_var, scales = "free")
+
+div_summer_jaar_long %>% 
+  ggplot(aes(div_val, productivity_val)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_y_log10() +
+  facet_grid(productivity_var~div_var, scales = "free")
+
+
+```
+
 
