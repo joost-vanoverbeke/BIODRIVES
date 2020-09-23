@@ -1,0 +1,187 @@
+---
+title: "analysis hyper #species for BIODRIVES"
+output:
+  word_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, error=FALSE, warning=FALSE, message=FALSE, cache=FALSE)
+
+```
+
+
+```{r}
+
+library(tidyverse)
+library(janitor)
+library(magrittr)
+library(readxl)
+library(vegan)
+
+```
+
+
+```{r}
+
+adapt_names <- 
+  function(names) {
+    names <- 
+      sapply(names,
+             function(x)
+               str_replace(x, "_", " "))
+    names <- case_when(
+      names == "Crangon" ~ "Crangon crangon",
+      names == "Mesopodopsis" ~ "Mesopodopsis slabberi",
+      names == "Neomysis int" ~ "Neomysis integer",
+      names == "Osmerus" ~ "Osmerus eperlanus",
+      names == "Palaemon" ~ "Palaemon longirostris",
+      names == "Platichthys" ~ "Platichthys flesus",
+      names == "Pomatoschistus" ~ "Pomatoschistus microps",
+      TRUE ~ names)
+    names <- 
+      sapply(names, 
+             function(x) 
+               if(x %>% str_split(" ", simplify = TRUE) %>% c() %>% length() > 1)
+                 paste0((x %>% 
+                           str_split(" ", simplify = TRUE) %>% 
+                           c())[1] %>% 
+                          str_sub(1,1), 
+                        ". ", 
+                        paste((x %>% 
+                                 str_split(" ", simplify = TRUE) %>% 
+                                 c())[-1]))
+             else(x))
+    return(names)
+  }
+
+```
+
+
+
+```{r}
+
+hyper_A <- 
+  read_excel("G:/Mijn Drive/INBODATA/PROJECTEN/PRJ_SCHELDE/BIODRIVES/Data/Hyperbenthos/MONEOS_A_opgekuist.xlsx") %>% 
+  filter(maand %in% 6:9) %>% 
+  group_by(jaar2, maand, locatie) %>% 
+  filter(datum == max(datum)) %>% 
+  ungroup()
+
+
+soorten <- 
+  names(hyper_A)[1:(which(names(hyper_A)=="SampleID")-1)]
+
+spe_A <-
+  hyper_A %>% 
+  select(SampleID, all_of(soorten))
+
+names(spe_A) <- 
+  adapt_names(names(spe_A))
+
+  
+sample_variables <- 
+  c("datum","jaar2", "seizoen", "maand", "salzone", "locatie")
+
+abiotic_variables <- 
+  paste0("z.", 
+         c("temp", "logSalpsu", "logMeanQ5M", "logMeanQ_CO", "tide_amplitude"))
+
+env_A <- 
+  hyper_A %>%   
+  mutate(logSalpsu = log(salpsu),
+         z.logSalpsu = scale(logSalpsu)) %>% 
+  select(SampleID, all_of(sample_variables), all_of(abiotic_variables)) %>% 
+  rename(jaar = jaar2) %>% 
+  mutate(salzone = factor(salzone, levels = c("mesohaline", "oligohaline", "freshwater")),
+         seizoen = factor(seizoen, levels = c("winter", "spring", "summer", "autumn")),
+         locatie = factor(locatie, levels = c("Paardenschor", "St-Anna", "Ballooi","Dendermonde","Brede Schoren", "Rupel")))
+
+
+```
+
+
+<!-- ```{r matrices aantallen, eval=FALSE} -->
+
+<!-- spe_A <- read_excel("G:/Mijn Drive/INBODATA/PROJECTEN/PRJ_SCHELDE/BIODRIVES/Data/Hyperbenthos/SPE_A.xlsx") -->
+<!-- env_A <- read_excel("G:/Mijn Drive/INBODATA/PROJECTEN/PRJ_SCHELDE/BIODRIVES/Data/Hyperbenthos/ENV_A.xlsx") -->
+
+<!-- sample_variables <-  -->
+<!--   c("jaar2", "seizoen", "maand", "salzone", "locatie") -->
+
+<!-- abiotic_variables <-  -->
+<!--   paste0("z.",  -->
+<!--          c("temp", "logSalpsu", "logMeanQ5M", "logMeanQ_CO", "tide_amplitude")) -->
+
+<!-- env_A <-  -->
+<!--   env_A %>%  -->
+<!--   select(SampleID, all_of(sample_variables), all_of(abiotic_variables)) %>%  -->
+<!--   drop_na() -->
+
+<!-- spe_A <-  -->
+<!--   spe_A %>%  -->
+<!--   filter(SampleID %in% env_A$SampleID) %>%  -->
+<!--   arrange(SampleID) %>% -->
+<!--   column_to_rownames("SampleID") -->
+
+<!-- names(spe_A) <-  -->
+<!--   adapt_names(names(spe_A)) -->
+
+<!-- env_A <-  -->
+<!--   env_A %>%  -->
+<!--   mutate(salzone = factor(salzone, levels = c("mesohaline", "oligohaline", "freshwater")), -->
+<!--          seizoen = factor(seizoen, levels = c("winter", "spring", "summer", "autumn"))) -->
+
+<!-- env_A <-  -->
+<!--   env_A %>%  -->
+<!--   arrange(SampleID) %>% -->
+<!--   column_to_rownames("SampleID") -->
+
+<!-- ``` -->
+
+
+```{r verkenning #staalnames}
+
+env_A %>% 
+  filter(maand %in% 6:9) %>% 
+  tabyl(jaar, maand)
+
+env_A %>% 
+  filter(maand %in% 6:9) %>% 
+  tabyl(jaar, maand, locatie)
+
+
+```
+
+
+```{r verkenning soorten}
+
+# na's in de soorten
+colSums(spe_A %>% 
+          select(-SampleID) %>% 
+          is.na())
+
+# soorten die nergens voorkomen
+colSums(spe_A %>% 
+          select(-SampleID))
+
+# presence soorten
+colSums(spe_A %>% 
+          select(-SampleID) %>% 
+          {. > 0})
+
+colSums(spe_A %>% 
+          select(-SampleID) %>% 
+          {. > 0}) %>% 
+  # t() %>% 
+  data.frame(aantal = .) %>% 
+  rownames_to_column("soort") %>% 
+  ggplot(aes(aantal)) +
+  geom_histogram(binwidth = 1)
+
+
+```
+

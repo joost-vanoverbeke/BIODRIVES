@@ -1,0 +1,314 @@
+---
+title: "preparing environmental data for BIODRIVES"
+output:
+  word_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, error=FALSE, warning=FALSE, message=FALSE, cache=FALSE)
+
+```
+
+
+```{r}
+
+library(fs)
+library(tidyverse)
+library(janitor)
+library(magrittr)
+library(lubridate)
+# library(readxl)
+
+```
+
+
+```{r}
+
+read_data_waterinfo <- function(filename) {
+  data <-   
+    read_delim(filename, 
+               ";", escape_double = FALSE, trim_ws = TRUE, 
+               col_types = cols(Value = col_character()),
+               skip = 7) %>% 
+    clean_names() %>% 
+    rename(timestamp = number_timestamp) %>% 
+    select(-absolute_value, -av_quality_code) %>% 
+    mutate(value = str_replace(value, ",", ".") %>% as.numeric)
+  
+  metadata <- 
+    read_delim(filename, 
+               ";", escape_double = FALSE, trim_ws = TRUE,
+               col_names = FALSE,
+               n_max = 6) %>% 
+    mutate(X1 = str_remove(X1, "#"))
+  
+  data$station_name <- 
+    metadata %>% 
+    filter(X1 == "station_name") %>% 
+    pull(X2)
+  data$parameter <- 
+    metadata %>% 
+    filter(X1 == "parametertype_name") %>% 
+    pull(X2)
+  data$unit <- 
+    metadata %>% 
+    filter(X1 == "ts_unitname") %>% 
+    pull(X2)
+  
+  return(data)
+}
+
+```
+
+
+```{r inlezen data}
+
+read_data_waterinfo <- function(filename) {
+  data <-   
+    read_delim(filename, 
+               ";", escape_double = FALSE, trim_ws = TRUE, 
+               col_types = cols(Value = col_character()),
+               skip = 7) %>% 
+    clean_names() %>% 
+    rename(timestamp = number_timestamp) %>% 
+    select(-absolute_value, -av_quality_code) %>% 
+    mutate(value = str_replace(value, ",", ".") %>% as.numeric) %>% 
+  filter(minute(timestamp) == 0, #enkel data per uur behouden
+         second(timestamp) == 0)
+  
+  metadata <- 
+    read_delim(filename, 
+               ";", escape_double = FALSE, trim_ws = TRUE,
+               col_names = FALSE,
+               n_max = 6) %>% 
+    mutate(X1 = str_remove(X1, "#"))
+  
+  data$station_name <- 
+    metadata %>% 
+    filter(X1 == "station_name") %>% 
+    pull(X2)
+  data$parameter <- 
+    metadata %>% 
+    filter(X1 == "parametertype_name") %>% 
+    pull(X2)
+  data$unit <- 
+    metadata %>% 
+    filter(X1 == "ts_unitname") %>% 
+    pull(X2)
+  
+  return(data)
+}
+
+data_path <- "G:/Mijn Drive/INBODATA/PROJECTEN/PRJ_SCHELDE/BIODRIVES/Data/Omgeving/Waterinfo/"
+
+files <- 
+  dir_ls(path = data_path, glob = "*.csv")
+
+data_waterinfo <- 
+  map_dfr(files, read_data_waterinfo)
+
+```
+
+
+Stationsnaam	Prosperpolder SF/Zeeschelde
+Stationsnummer	zes01a-SF-CM
+x-coördinaat	140885.00
+y-coördinaat	226514.00
+Bekken	Beneden-Scheldebekken
+Data leverancier	MOW-HIC
+Data eigenaar	HIC
+Afstandgrens 3km
+Afstandmonding 67.75km
+OMES 9
+
+Stationsnaam	Liefkenshoek SF/Zeeschelde
+Stationsnummer	HIS_zes10a-SF-CM
+x-coördinaat	144286.00
+y-coördinaat	220752.00
+Bekken	Beneden-Scheldebekken
+Data leverancier	MOW-HIC
+Data eigenaar	HIC
+Afstandgrens 11km
+Afstandmonding 75.75km
+OMES 10
+
+Stationsnaam	Oosterweel-Boven SF/Zeeschelde
+Stationsnummer	zes19a-SF-CMB
+x-coördinaat	150126.00
+y-coördinaat	214116.00
+Bekken	Beneden-Scheldebekken
+Data leverancier	MOW-HIC
+Data eigenaar	HIC
+Afstandgrens 23km
+Afstandmonding 87.75
+OMES 11
+
+Stationsnaam	Hemiksem SF/Zeeschelde
+Stationsnummer	zes28a-SF-CM
+x-coördinaat	147204.00
+y-coördinaat	203660.00
+Bekken	Beneden-Scheldebekken
+Data leverancier	MOW-HIC
+Data eigenaar	HIC
+Afstandgrens 37.5km
+Afstandmonding 102.25km
+OMES 13
+
+Stationsnaam	Melle SF/Zeeschelde
+Stationsnummer	zes57a-SF-CM
+x-coördinaat	110455.00
+y-coördinaat	188384.00
+Bekken	Beneden-Scheldebekken
+Data leverancier	MOW-HIC
+Data eigenaar	HIC
+Afstandgrens 100km
+Afstandmonding 164.75km
+OMES 19
+
+Stationsnaam	Schelle calc/Zeeschelde
+Stationsnummer	zes29f-1066
+x-coördinaat	146283.20
+y-coördinaat	201774.80
+Bekken	Beneden-Scheldebekken
+Data leverancier	MOW-HIC
+Data eigenaar	HIC
+Afstandgrens 39.5km
+Afstandmonding 104.25
+OMES 13
+
+
+F1, F2 : Melle
+O1, O2 : Hemiksem
+M2 : Oosterweel
+M1 : Prosperpolder
+
+
+```{r waarden per dag}
+
+data_waterinfo_day <-
+  data_waterinfo %>% 
+  mutate(date = date(timestamp),
+         year = year(timestamp),
+         month = month(timestamp),
+         day = day(timestamp)) %>% 
+  filter(year >= 2010) %>% 
+  group_by(date, year, month, day, station_name, parameter, unit) %>% 
+  summarise(value = mean(value, na.rm = TRUE)) %>% 
+  ungroup()
+
+data_waterinfo_day %>% 
+  ggplot(aes(date, value)) +
+  geom_point() +
+  geom_line() +
+  # geom_smooth(method = "lm") +
+  scale_x_date() +
+  facet_grid(parameter~station_name, scales = "free_y")
+
+```
+
+
+```{r lange termijn data (2010-2020)}
+
+data_waterinfo_long_term <-
+  data_waterinfo_day %>% 
+  filter(str_detect(station_name, "Oosterweel-Boven|Liefkenshoek|Schelle|Melle|Hemiksem|Prosperpolder"),
+         !str_detect(station_name, "Liefkenshoek Veer|Schellebelle")) %>% 
+  mutate(station_name_short = recode(station_name, 
+                                     `Melle tij/Zeeschelde` = "Melle", 
+                                     `Melle SF/Zeeschelde` = "Melle", 
+                                     `Hemiksem SF/Zeeschelde` = "Hemiksem", 
+                                     `Oosterweel-Boven SF/Zeeschelde` = "Oosterweel", 
+                                     `Liefkenshoek SF/Zeeschelde` = "Liefkenshoek", 
+                                     `Prosperpolder SF/Zeeschelde` = "Prosperpolder", 
+                                     `Hemiksem SF/Zeeschelde` = "Hemiksem", 
+                                     `Schelle calc/Zeeschelde` = "Schelle"))
+
+data_waterinfo_long_term %>% 
+  ggplot(aes(date, value)) +
+  geom_point() +
+  geom_line() +
+  # geom_smooth(method = "lm") +
+  scale_x_date() +
+  facet_grid(parameter~station_name_short, scales = "free_y")
+
+```
+
+
+```{r toevoegen Q Rupel}
+
+data_waterinfo_long_term <- 
+  data_waterinfo_long_term %>% 
+  bind_rows(data_waterinfo_long_term %>% 
+              filter(parameter == "Q") %>% 
+              group_by(date, year, month, day, parameter, unit) %>% 
+              summarise(station_name_short = "Rupel",
+                        value = max(value) - min(value)) %>% 
+              ungroup())
+
+```
+
+
+```{r summary zomer}
+
+data_waterinfo_zomer <-
+  data_waterinfo_long_term %>% 
+  filter(!(station_name_short == "prosperpolder" & parameter == "Q" & value < 2)) %>% #outlier in salinity prosperpolder
+  filter(month %in% c(6,7,8,9),
+         # !month == 6 & day < 21,
+         !(month == 9 & day > 15)) %>% 
+  group_by(year, parameter, unit, station = station_name_short) %>% 
+  summarise(value_mean = mean(value, na.rm = TRUE),
+            value_var = var(value, na.rm = TRUE),
+            value_stab = value_mean/value_var,
+            value_lwr_05 = quantile(value, 0.05, na.rm = TRUE),
+            value_upr_95 = quantile(value, 0.95, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  mutate(station = factor(station, levels = c("Melle", "Rupel", "Schelle", "Hemiksem", "Oosterweel", "Liefkenshoek", "Prosperpolder")))
+
+
+data_waterinfo_zomer %>% 
+  filter(year >= 2013,
+         year <= 2019) %>% 
+  filter(parameter == "WT") %>% 
+  pivot_longer(cols = value_mean:value_upr_95,
+               names_to = "stat",
+               values_to = "value") %>% 
+  mutate(stat = factor(stat, levels = c("value_mean", "value_var", "value_stab", "value_lwr_05", "value_upr_95"))) %>% 
+  ggplot(aes(year, value)) +
+  geom_point() +
+  geom_line() +
+  facet_grid(stat~station, scales = "free_y")
+
+data_waterinfo_zomer %>% 
+  filter(year >= 2013,
+         year <= 2019) %>% 
+  filter(parameter == "SALT") %>% 
+  pivot_longer(cols = value_mean:value_upr_95,
+               names_to = "stat",
+               values_to = "value") %>% 
+  mutate(stat = factor(stat, levels = c("value_mean", "value_var", "value_stab", "value_lwr_05", "value_upr_95"))) %>% 
+  ggplot(aes(year, value)) +
+  geom_point() +
+  geom_line() +
+  facet_grid(stat~station, scales = "free_y")
+
+data_waterinfo_zomer %>% 
+  filter(year >= 2013,
+         year <= 2019) %>% 
+  filter(parameter == "Q") %>% 
+  pivot_longer(cols = value_mean:value_upr_95,
+               names_to = "stat",
+               values_to = "value") %>% 
+  mutate(stat = factor(stat, levels = c("value_mean", "value_var", "value_stab", "value_lwr_05", "value_upr_95"))) %>% 
+  ggplot(aes(year, value)) +
+  geom_point() +
+  geom_line() +
+  facet_grid(stat~station, scales = "free_y")
+
+```
+
+

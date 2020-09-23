@@ -61,11 +61,8 @@ adapt_names <-
 
 ```{r matrices aantallen}
 
-spe_A <- read_excel("pilot_hyper/00_data/SPE_A.xlsx")
-env_A <- read_excel("pilot_hyper/00_data/ENV_A.xlsx")
-
-# spe_A <- read_excel("C:/Users/joost_vanoverbeke/Documents/BIODRIVES/pilot_hyper/00_data/SPE_A.xlsx")
-# env_A <- read_excel("C:/Users/joost_vanoverbeke/Documents/BIODRIVES/pilot_hyper/00_data/ENV_A.xlsx")
+spe_A <- read_excel("G:/Mijn Drive/INBODATA/PROJECTEN/PRJ_SCHELDE/BIODRIVES/Data/Hyperbenthos/SPE_A.xlsx")
+env_A <- read_excel("G:/Mijn Drive/INBODATA/PROJECTEN/PRJ_SCHELDE/BIODRIVES/Data/Hyperbenthos/ENV_A.xlsx")
 
 sample_variables <- 
   c("jaar2", "seizoen", "maand", "salzone", "locatie")
@@ -103,11 +100,9 @@ env_A <-
 
 ```{r matrices biomassa}
 
-spe_B <- read_excel("pilot_hyper/00_data/SPE_B.xlsx")
-env_B <- read_excel("pilot_hyper/00_data/ENV_B.xlsx")
+spe_B <- read_excel("G:/Mijn Drive/INBODATA/PROJECTEN/PRJ_SCHELDE/BIODRIVES/Data/Hyperbenthos/SPE_B.xlsx")
+env_B <- read_excel("G:/Mijn Drive/INBODATA/PROJECTEN/PRJ_SCHELDE/BIODRIVES/Data/Hyperbenthos/ENV_B.xlsx")
 
-# spe_B <- read_excel("C:/Users/joost_vanoverbeke/Documents/BIODRIVES/pilot_hyper/00_data/SPE_B.xlsx")
-# env_B <- read_excel("C:/Users/joost_vanoverbeke/Documents/BIODRIVES/pilot_hyper/00_data/ENV_B.xlsx")
 
 sample_variables <- 
   c("jaar2", "seizoen", "maand", "salzone", "locatie")
